@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grid — F1 Roblox League Predictions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="auth-screen" class="auth-screen">
+      <div class="auth-card">
+        <div class="brand auth-brand">
+          <span class="logo" aria-hidden="true">◈</span>
+          <div>
+            <span class="name">Grid</span>
+            <p class="auth-tagline">F1 Roblox League · prediction markets</p>
+          </div>
+        </div>
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab active" data-auth="login">Sign in</button>
+          <button type="button" class="auth-tab" data-auth="register">Create account</button>
+        </div>
+        <form id="form-login" class="auth-form" autocomplete="on">
+          <label class="field">
+            <span>Username</span>
+            <input name="username" required autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input name="password" type="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn primary">Sign in</button>
+          <p class="auth-hint">Default league admin: <code>admin</code> / <code>QWERTYUIOP</code></p>
+        </form>
+        <form id="form-register" class="auth-form hidden" autocomplete="on">
+          <label class="field">
+            <span>Username</span>
+            <input name="username" required minlength="2" maxlength="24" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Discord username</span>
+            <input
+              name="discord"
+              required
+              autocomplete="off"
+              placeholder="Must match your Discord handle (no @)"
+              pattern="[A-Za-z0-9._]{2,32}"
+              title="2–32 characters: letters, numbers, dots, underscores"
+            />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input name="password" type="password" required minlength="4" autocomplete="new-password" />
+          </label>
+          <button type="submit" class="btn primary">Request access</button>
+          <p class="auth-hint">After an admin approves you, you start with <strong>1,000 C</strong>. You can sign in once approved.</p>
+        </form>
+        <p id="auth-error" class="auth-error" role="alert" hidden></p>
+      </div>
+    </div>
+
+    <div id="pending-screen" class="pending-screen hidden">
+      <div class="pending-card">
+        <span class="logo pending-logo" aria-hidden="true">◈</span>
+        <h2 class="pending-title">Waiting for approval</h2>
+        <p class="pending-text">
+          Your account is not approved yet. Ask a league admin to approve you in the Admin panel. You’ll get
+          <strong>1,000 C</strong> when approved.
+        </p>
+        <p class="pending-discord mono" id="pending-discord-line"></p>
+        <button type="button" class="btn primary" id="btn-pending-logout">Sign out</button>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">◈</span>
+          <span class="name">Grid</span>
+        </div>
+        <nav class="nav" aria-label="Main">
+          <button type="button" class="nav-btn active" data-view="markets">Markets</button>
+          <button type="button" class="nav-btn" data-view="portfolio">Portfolio</button>
+          <button type="button" class="nav-btn" data-view="leaderboard">Leaderboard</button>
+          <button type="button" class="nav-btn hidden" id="nav-admin" data-view="admin">Admin</button>
+        </nav>
+        <div class="topbar-right">
+          <span class="user-pill mono" id="user-pill" title="Signed in"></span>
+          <div class="balance-pill" title="C available for trading">
+            <span class="label">Balance</span>
+            <span class="value mono currency-c" id="cash-balance">0 C</span>
+          </div>
+          <button type="button" class="btn-ghost" id="btn-logout">Sign out</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <section id="view-markets" class="view">
+          <div class="toolbar">
+            <input
+              type="search"
+              id="market-search"
+              class="search"
+              placeholder="Search races, drivers, tickers…"
+              autocomplete="off"
+            />
+            <div class="filters" id="category-filters" role="tablist" aria-label="Categories"></div>
+          </div>
+          <div class="table-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Ticker</th>
+                  <th class="num">Yes bid</th>
+                  <th class="num">Yes ask</th>
+                  <th class="num">Last</th>
+                  <th class="num">Volume</th>
+                  <th class="chart-col">Trend</th>
+                  <th class="num admin-only hidden" id="th-admin">Admin</th>
+                </tr>
+              </thead>
+              <tbody id="market-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-leaderboard" class="view hidden">
+          <h2 class="section-title">Leaderboard</h2>
+          <p class="leaderboard-lede">Ranked by <strong>net worth</strong> (cash + mark-to-market on open positions). League admins are excluded.</p>
+          <div class="table-wrap">
+            <table class="market-table leaderboard-table">
+              <thead>
+                <tr>
+                  <th class="num">#</th>
+                  <th>Discord</th>
+                  <th>Username</th>
+                  <th class="num">Cash (C)</th>
+                  <th class="num">Net worth (C)</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-rows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="view-portfolio" class="view hidden">
+          <h2 class="section-title">Positions</h2>
+          <div class="table-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>Contract</th>
+                  <th>Side</th>
+                  <th class="num">Qty</th>
+                  <th class="num">Avg</th>
+                  <th class="num">Mark</th>
+                  <th class="num">P&amp;L (C)</th>
+                </tr>
+              </thead>
+              <tbody id="position-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="portfolio-empty">No open positions. Open a market and trade.</p>
+        </section>
+
+        <section id="view-admin" class="view hidden">
+          <h2 class="section-title">Pending accounts</h2>
+          <p class="admin-lede">Approve new drivers after you verify their Discord. Approved accounts receive <strong>1,000 C</strong>.</p>
+          <div class="table-wrap admin-approval-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>Discord</th>
+                  <th>Username</th>
+                  <th class="num">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pending-approval-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-hint" id="pending-empty">No pending sign-ups.</p>
+
+          <h2 class="section-title section-title-spaced">Create a bet</h2>
+          <p class="admin-lede">Add YES/NO contracts. Prices use probability points (0–100); cost in C = price × contracts.</p>
+          <form id="admin-create-form" class="admin-form">
+            <div class="admin-grid">
+              <label class="field">
+                <span>Question / event title</span>
+                <input name="title" required maxlength="200" placeholder="e.g. Crimson Racing wins Race 7" />
+              </label>
+              <label class="field">
+                <span>Subtitle / resolution</span>
+                <input name="subtitle" maxlength="200" placeholder="e.g. Official league results after Race 7" />
+              </label>
+              <label class="field">
+                <span>Ticker</span>
+                <input name="ticker" required maxlength="24" class="mono" placeholder="R7-CRIM" />
+              </label>
+              <label class="field">
+                <span>Category</span>
+                <select name="category" id="admin-category">
+                  <option>Races</option>
+                  <option>Drivers</option>
+                  <option>Teams</option>
+                  <option>Season</option>
+                  <option>League</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>YES bid (0–98)</span>
+                <input name="yesBid" type="number" min="1" max="97" value="40" class="mono" />
+              </label>
+              <label class="field">
+                <span>YES ask (2–99, &gt; bid)</span>
+                <input name="yesAsk" type="number" min="2" max="99" value="45" class="mono" />
+              </label>
+              <label class="field">
+                <span>Starting volume (display)</span>
+                <input name="volume" type="number" min="0" value="0" step="1" class="mono" />
+              </label>
+            </div>
+            <button type="submit" class="btn primary admin-submit">Publish bet</button>
+          </form>
+        </section>
+      </main>
+
+      <aside class="drawer" id="drawer" aria-hidden="true">
+        <div class="drawer-backdrop" id="drawer-backdrop"></div>
+        <div class="drawer-panel" role="dialog" aria-labelledby="drawer-title">
+          <button type="button" class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+          <div class="drawer-head">
+            <p class="drawer-ticker mono" id="drawer-ticker"></p>
+            <h2 id="drawer-title" class="drawer-title"></h2>
+            <p class="drawer-meta" id="drawer-meta"></p>
+          </div>
+          <div class="quote-grid">
+            <div class="quote yes">
+              <span class="tag">YES</span>
+              <span class="bid mono" id="yes-bid"></span>
+              <span class="ask mono" id="yes-ask"></span>
+            </div>
+            <div class="quote no">
+              <span class="tag">NO</span>
+              <span class="bid mono" id="no-bid"></span>
+              <span class="ask mono" id="no-ask"></span>
+            </div>
+          </div>
+          <div class="chart-block">
+            <div class="chart-block-head">
+              <span class="chart-label">YES mid price</span>
+              <span class="chart-legend mono" id="chart-range-label">Last 48 pts</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="drawer-chart" width="360" height="140" aria-label="YES mid price over time"></canvas>
+            </div>
+          </div>
+          <form class="ticket" id="order-form">
+            <fieldset class="side-toggle">
+              <legend class="sr-only">Side</legend>
+              <label><input type="radio" name="side" value="yes" checked /> Buy YES</label>
+              <label><input type="radio" name="side" value="no" /> Buy NO</label>
+            </fieldset>
+            <label class="field">
+              <span>Contracts</span>
+              <input type="number" id="qty" min="1" max="100000" value="10" step="1" />
+            </label>
+            <div class="est">
+              <span>Est. cost (C)</span>
+              <span class="mono currency-c" id="est-cost">0 C</span>
+            </div>
+            <button type="submit" class="btn primary" id="submit-order">Place order</button>
+            <p class="fine-print">
+              Each contract pays <strong>100 C</strong> if your side wins at settlement, <strong>0 C</strong> otherwise. Bid/ask are probability
+              points (0–100); you pay the ask in C per contract.
+            </p>
+          </form>
+        </div>
+      </aside>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
