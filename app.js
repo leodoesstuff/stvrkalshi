@@ -2,7 +2,7 @@
   "use strict";
 
   const TOKEN_KEY = "grid_token";
-  const API_URL = "PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE";
+  const API_URL = "https://script.google.com/macros/s/AKfycbwYX-YBCesj9MCEl6gFFvQY7JJdWwFPDSCBBuMQL64HIYrWJ5La3epmVCyAhihCqVkt/exec";
 
   const state = {
     token: null,
